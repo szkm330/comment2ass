@@ -1,15 +1,15 @@
 import flet as ft
+import os
 from enum import Enum, auto
 import threading
 import time
 from typing import Dict, List, Tuple
-from core import run_full_process
+from core import run_comment2ass
 
 class TargetSite(Enum):
-    """Enumeration for the target sites."""
     ASOBI = auto()
 
-# Helper Type for Log Function
+# Type alias for the log writer TextField
 LogWriter = ft.TextField
 
 def create_target_list(selected_index: Dict[str, TargetSite], log_writer: LogWriter) -> Tuple[ft.ListView, List[ft.Control]]:
@@ -52,11 +52,8 @@ def create_input_field(label_text: str, value: str = "", expand: bool = True) ->
 
 
 def create_input_grid() -> Tuple[ft.Column, Dict[str, ft.TextField]]:
-    """
-    Creates the grid of input fields for settings.
-    Returns the UI Column and a dictionary of the actual input TextFields.
-    """
-    # 创建列(Column)控件
+    
+    # 创建Column
     line_count_col = create_input_field("弹幕行数", "11")
     prefix_col = create_input_field("ASS代码前缀", r"\fnMS PGothic\b1\bord2\blur0")
     font_size_col = create_input_field("弹幕大小", "46")
@@ -64,7 +61,7 @@ def create_input_grid() -> Tuple[ft.Column, Dict[str, ft.TextField]]:
     offset_col = create_input_field("时间轴偏移(提前←0→延后)", "0")
     speed_col = create_input_field("滚动速度(加快←0→减慢)", "1")
 
-    # 从列控件中提取实际的TextField，并存入字典
+    # 从Column提取TextField，存入字典
     input_fields = {
         "line_count": line_count_col.controls[1],
         "prefix": prefix_col.controls[1],
@@ -74,7 +71,7 @@ def create_input_grid() -> Tuple[ft.Column, Dict[str, ft.TextField]]:
         "speed": speed_col.controls[1],
     }
 
-    # 使用创建的列控件构建UI布局
+    # 构建UI布局
     grid_layout = ft.Column(
         controls=[
             ft.Row([line_count_col, prefix_col]),
@@ -88,7 +85,7 @@ def create_input_grid() -> Tuple[ft.Column, Dict[str, ft.TextField]]:
 
 
 def create_file_picker(page: ft.Page) -> Tuple[ft.TextField, ft.Column]:
-    """Creates the file picker UI component for selecting a save directory."""
+
     path_input = ft.TextField(read_only=True, expand=True)
     
     file_picker = ft.FilePicker(
@@ -104,9 +101,10 @@ def create_file_picker(page: ft.Page) -> Tuple[ft.TextField, ft.Column]:
     
     def pick_directory(e):
         file_picker.save_file(
-            dialog_title="保存",
-            file_name="output.ass",
-            allowed_extensions=["ass"]
+            dialog_title = "保存",
+            file_name = "output.ass",
+            allowed_extensions = ["ass"],
+            initial_directory = os.getcwd()
         )
     
     picker_widget = ft.Column(
@@ -135,17 +133,31 @@ def create_main_button(
     checkbox: ft.Checkbox,
     websocket_input: ft.TextField
 ) -> ft.Control:
-    """返回一个在后台线程中运行工作的主操作按钮。"""
-    main_button = ft.OutlinedButton("开始处理", width=200)
+
+    # 创建按钮内容组件
+    progress_ring = ft.ProgressRing(width=16, height=16, stroke_width=2, visible=False)
+    button_text = ft.Text("开始处理")
+
+    main_button = ft.OutlinedButton(
+        content=ft.Row(
+            controls=[
+                progress_ring,
+                button_text,
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=10,
+        ),
+        width=200,
+    )
 
     def _background_task():
         
         def log_callback(message: str):
-            """一个非常简单的回调，只是将消息追加到日志末尾。"""
+            # Append message to log_writer
             log_writer.value += message + "\n"
             log_writer.update()
 
-        # --- 核心改动：在这里收集所有UI输入到一个字典中 ---
+        # 输入参数字典
         settings = {
             "target_site": selected_index['value'],
             "line_count": grid_inputs['line_count'].value,
@@ -154,25 +166,30 @@ def create_main_button(
             "density": grid_inputs['density'].value,
             "offset": grid_inputs['offset'].value,
             "speed": grid_inputs['speed'].value,
-            "save_path": path_input.value,
+            "save_path": path_input.value or "output.ass",
             "keep_temp_files": checkbox.value,
             "websocket_url": websocket_input.value,
         }
         
         try:
-            # 调用核心逻辑，现在传入了settings字典和日志函数
-            run_full_process(settings=settings, log=log_callback)
+            # 传入settings和log函数
+            run_comment2ass(settings=settings, log=log_callback)
         except Exception as e:
-            # 捕获从core层抛出的未处理异常
-            log_callback(f"UI层捕获到未处理的异常: {e}")
+            log_callback(f"{e}")
         finally:
-            # 任务完成后必须重新启用按钮
+            # 任务完成后，恢复按钮状态
             main_button.disabled = False
+            progress_ring.visible = False
+            button_text.value = "开始处理"
             main_button.update()
 
     def on_click(e):
+        # 点击时，改变按钮状态，显示正在处理
         main_button.disabled = True
+        progress_ring.visible = True
+        button_text.value = "处理中..."
         log_writer.value = "" # 点击时清空日志
+        main_button.update()
         log_writer.update()
         threading.Thread(target=_background_task, daemon=True).start()
 
@@ -180,18 +197,17 @@ def create_main_button(
     return main_button
 
 def create_center_panel(page: ft.Page, log_writer: LogWriter, selected_index: Dict[str, TargetSite]) -> ft.Column:
-    """Creates the central panel with all the input controls."""
-    # 获取UI布局和包含输入控件的字典
+
     input_grid_ui, grid_inputs = create_input_grid()
     
     path_input, picker_widget = create_file_picker(page)
     checkbox = ft.Checkbox(label="保留临时文件 (json, xml)", value=False)
     
     websocket_field_col = create_input_field(label_text="WebSocket", value="wss://")
-    # 从列控件中提取实际的TextField
+    # 从Column提取TextField
     websocket_input = websocket_field_col.controls[1]
     
-    # 将所有输入控件传递给主按钮创建函数
+    # 创建主按钮
     main_button = create_main_button(
         page, 
         log_writer, 
@@ -217,7 +233,7 @@ def create_center_panel(page: ft.Page, log_writer: LogWriter, selected_index: Di
 
 
 def create_right_log_panel() -> Tuple[ft.TextField, ft.Column]:
-    """Create the right-hand panel for log output."""
+    # 创建右侧日志输出面板
     log_output_field = ft.TextField(
         read_only=True,
         multiline=True,
