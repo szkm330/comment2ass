@@ -54,29 +54,29 @@ def create_input_field(label_text: str, value: str = "", expand: bool = True) ->
 def create_input_grid() -> Tuple[ft.Column, Dict[str, ft.TextField]]:
     
     # 创建Column
-    line_count_col = create_input_field("弹幕行数", "11")
-    prefix_col = create_input_field("ASS代码前缀", r"\fnMS PGothic\b1\bord2\blur0")
-    font_size_col = create_input_field("弹幕大小", "46")
-    density_col = create_input_field("弹幕密度", "10")
-    offset_col = create_input_field("时间轴偏移(提前←0→延后)", "0")
-    speed_col = create_input_field("滚动速度(加快←0→减慢)", "1")
+    limit_line_amount_col = create_input_field("弹幕行数", "11")
+    ass_code_col = create_input_field("ASS代码前缀", r"\fnMS PGothic\b1\bord2\blur0")
+    danmaku_size_col = create_input_field("弹幕大小", "46")
+    danmaku_density_col = create_input_field("弹幕密度", "10")
+    start_time_adjust_col = create_input_field("时间轴偏移(提前←0→延后)", "0")
+    danmaku_speed_adjust_col = create_input_field("滚动速度(加快←0→减慢)", "1")
 
     # 从Column提取TextField，存入字典
     input_fields = {
-        "line_count": line_count_col.controls[1],
-        "prefix": prefix_col.controls[1],
-        "font_size": font_size_col.controls[1],
-        "density": density_col.controls[1],
-        "offset": offset_col.controls[1],
-        "speed": speed_col.controls[1],
+        "limit_line_amount": limit_line_amount_col.controls[1],
+        "ass_code": ass_code_col.controls[1],
+        "danmaku_size": danmaku_size_col.controls[1],
+        "danmaku_density": danmaku_density_col.controls[1],
+        "start_time_adjust": start_time_adjust_col.controls[1],
+        "danmaku_speed_adjust": danmaku_speed_adjust_col.controls[1],
     }
 
     # 构建UI布局
     grid_layout = ft.Column(
         controls=[
-            ft.Row([line_count_col, prefix_col]),
-            ft.Row([font_size_col, density_col]),
-            ft.Row([offset_col, speed_col]),
+            ft.Row([limit_line_amount_col, ass_code_col]),
+            ft.Row([danmaku_size_col, danmaku_density_col]),
+            ft.Row([start_time_adjust_col, danmaku_speed_adjust_col]),
         ],
         spacing=10,
     )
@@ -160,12 +160,12 @@ def create_main_button(
         # 输入参数字典
         settings = {
             "target_site": selected_index['value'],
-            "line_count": grid_inputs['line_count'].value,
-            "prefix": grid_inputs['prefix'].value,
-            "font_size": grid_inputs['font_size'].value,
-            "density": grid_inputs['density'].value,
-            "offset": grid_inputs['offset'].value,
-            "speed": grid_inputs['speed'].value,
+            "limit_line_amount": grid_inputs['limit_line_amount'].value,
+            "ass_code": grid_inputs['ass_code'].value,
+            "danmaku_size": grid_inputs['danmaku_size'].value,
+            "danmaku_density": grid_inputs['danmaku_density'].value,
+            "start_time_adjust": grid_inputs['start_time_adjust'].value,
+            "danmaku_speed_adjust": grid_inputs['danmaku_speed_adjust'].value,
             "save_path": path_input.value or "output.ass",
             "keep_temp_files": checkbox.value,
             "websocket_url": websocket_input.value,

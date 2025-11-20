@@ -1,29 +1,14 @@
-import time
 import json
-import sys
 import datetime
 from decimal import Decimal, ROUND_HALF_UP
-from .utils import get_file_and_path, xml_escape
-
-def simulate_conversion(settings: dict):
-    """
-    模拟转换过程。
-    不再处理任何日志记录。
-    :param settings: 一个包含所有UI设置的字典。
-    """
-    # 验证参数已传入 (这会打印在你的程序控制台，而不是UI日志框)
-    print(f"[Converter] 收到设置，将使用字体大小: {settings.get('font_size')} 和 弹幕密度: {settings.get('density')}")
-
-    # 模拟工作
-    time.sleep(1.5)
+from .utils import xml_escape
 
 
 
 def convert_json_to_xml(input_json_filename, output_xml_filename):
     """
-    将包含ASOBISTAGE评论的JSON文件转换为NicoNico XML评论文件
+    将JSON文件转换为NicoNico XML评论文件
     """
-    print(f"开始转换: {input_json_filename} -> {output_xml_filename}")
 
     # 读取JSON文件
     with open(input_json_filename, 'r', encoding='UTF-8') as json_file:
@@ -99,5 +84,3 @@ def convert_json_to_xml(input_json_filename, output_xml_filename):
             f_out.write("</chat>\n")
 
         f_out.write("</packet>\n")
-    
-    print(f"转换完成。共写入 {xml_comment_number} 条评论到 '{output_xml_filename}'。")
