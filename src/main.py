@@ -6,6 +6,7 @@ from ui import *
 def main(page: ft.Page):
     # Basic page/window settings
     page.title = "Comment2ass"
+    page.window_icon = "/icon.ico"
     page.padding = 15
     page.window.width = 1100
     page.window.height = 600
